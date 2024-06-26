@@ -332,6 +332,20 @@ export function getCommands(options) {
         });
     }
 
+    if ([BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Series].includes(item.Type)) {
+        commands.push({
+            name: 'CC translate',
+            id: 'translate-subtitle',
+            icon: 'g_translate'
+        });
+
+        commands.push({
+            name: 'Switch location',
+            id: 'switch-location',
+            icon: 'double_arrow'
+        });
+    }
+
     return commands;
 }
 
@@ -349,6 +363,82 @@ function executeCommand(item, id, options) {
     const itemId = item.Id;
     const serverId = item.ServerId;
     const apiClient = ServerConnections.getApiClient(serverId);
+
+    async function getLibraryInfo(itemPath) {
+        const virtualFolders = await apiClient.getVirtualFolders();
+        let currLibLocation = null;
+        let nextLibLocation = null;
+        const currVirtualFolder = virtualFolders.find(virtualFolder => {
+            const locationsSize = virtualFolder.Locations.length;
+            const isNotSingleLocation = locationsSize > 1;
+            return virtualFolder.Locations.some((Location, index) => {
+                const isLibLocation = itemPath.startsWith(Location);
+                if (isLibLocation) {
+                    if (isNotSingleLocation) {
+                        const nextIndex = (index + 1) % locationsSize;
+                        nextLibLocation = virtualFolder.Locations[nextIndex];
+                    }
+                    currLibLocation = Location;
+                }
+                return isLibLocation;
+            });
+        });
+
+        return { currVirtualFolder, currLibLocation, nextLibLocation };
+    }
+
+    async function translateSubtitle() {
+        const libraryInfo = await getLibraryInfo(item.Path);
+        console.log(libraryInfo);
+        let success = false;
+        let errText = '';
+        try {
+            toast('Translating subtitle...');
+            const url = apiClient.serverAddress().replace(/:\d+$/, ':4800') + '/api/jellyfin/translate-subtitle';
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: item.Path,
+                    isFolder: item.IsFolder,
+                    libraryPath: libraryInfo.currLibLocation
+                })
+            });
+            success = res.status === 200;
+        } catch (error) {
+            errText = String(error);
+        }
+        toast(success ? 'Translate subtitle success' : ('Translate subtitle failed: ' + errText));
+    }
+
+    async function switchLocation() {
+        const libraryInfo = await getLibraryInfo(item.Path);
+        console.log(libraryInfo);
+        let success = false;
+        let errText = '';
+        try {
+            toast('Switching location...');
+            const url = apiClient.serverAddress().replace(/:\d+$/, ':4800') + '/api/jellyfin/switch-location';
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: item.Path,
+                    isFolder: item.IsFolder,
+                    libraryPath: libraryInfo.currLibLocation,
+                    nextLibraryPath: libraryInfo.nextLibLocation
+                })
+            });
+            success = res.status === 200;
+        } catch (error) {
+            errText = String(error);
+        }
+        toast(success ? 'Switch location success' : ('Switch location failed: ' + errText));
+    }
 
     return new Promise(function (resolve, reject) {
         // eslint-disable-next-line sonarjs/max-switch-cases
@@ -573,6 +663,16 @@ function executeCommand(item, id, options) {
                 break;
             case 'cancelseriestimer':
                 deleteSeriesTimer(apiClient, item, resolve, id);
+                break;
+            case 'translate-subtitle':
+                translateSubtitle().then(() => {
+                    window.location.reload();
+                });
+                break;
+            case 'switch-location':
+                switchLocation().then(() => {
+                    window.location.reload();
+                });
                 break;
             default:
                 reject();
