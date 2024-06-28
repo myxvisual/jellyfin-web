@@ -332,6 +332,12 @@ export function getCommands(options) {
         });
     }
 
+    commands.push({
+        name: 'Fast Refresh',
+        id: 'fast-refresh',
+        icon: 'autorenew'
+    });
+
     if ([BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Series].includes(item.Type)) {
         commands.push({
             name: 'CC translate',
@@ -364,10 +370,12 @@ function executeCommand(item, id, options) {
     const serverId = item.ServerId;
     const apiClient = ServerConnections.getApiClient(serverId);
 
+    const delayReloadTime = 5000;
     async function getLibraryInfo(itemPath) {
         const virtualFolders = await apiClient.getVirtualFolders();
         let currLibLocation = null;
         let nextLibLocation = null;
+        let nextVirtualFolder = null;
         const currVirtualFolder = virtualFolders.find(virtualFolder => {
             const locationsSize = virtualFolder.Locations.length;
             const isNotSingleLocation = locationsSize > 1;
@@ -377,6 +385,7 @@ function executeCommand(item, id, options) {
                     if (isNotSingleLocation) {
                         const nextIndex = (index + 1) % locationsSize;
                         nextLibLocation = virtualFolder.Locations[nextIndex];
+                        nextVirtualFolder = virtualFolders[nextIndex];
                     }
                     currLibLocation = Location;
                 }
@@ -384,7 +393,23 @@ function executeCommand(item, id, options) {
             });
         });
 
-        return { currVirtualFolder, currLibLocation, nextLibLocation };
+        return { currVirtualFolder, nextVirtualFolder, currLibLocation, nextLibLocation };
+    }
+
+    async function fastRefresh(refreshItemId = itemId) {
+        const refreshMode = 'scan'; // 'all', 'scan', 'missing'
+        const mode = refreshMode === 'scan' ? 'Default' : 'FullRefresh';
+        const replaceAllMetadata = refreshMode === 'all';
+        const replaceAllImages = refreshMode === 'all';
+
+        const res = await apiClient.refreshItem(refreshItemId, {
+            Recursive: true,
+            ImageRefreshMode: mode,
+            MetadataRefreshMode: mode,
+            ReplaceAllImages: replaceAllImages,
+            ReplaceAllMetadata: replaceAllMetadata
+        });
+        console.log(res);
     }
 
     async function translateSubtitle() {
@@ -411,6 +436,7 @@ function executeCommand(item, id, options) {
             errText = String(error);
         }
         toast(success ? 'Translate subtitle success' : ('Translate subtitle failed: ' + errText));
+        return libraryInfo;
     }
 
     async function switchLocation() {
@@ -438,6 +464,7 @@ function executeCommand(item, id, options) {
             errText = String(error);
         }
         toast(success ? 'Switch location success' : ('Switch location failed: ' + errText));
+        return libraryInfo;
     }
 
     return new Promise(function (resolve, reject) {
@@ -664,14 +691,34 @@ function executeCommand(item, id, options) {
             case 'cancelseriestimer':
                 deleteSeriesTimer(apiClient, item, resolve, id);
                 break;
+            case 'fast-refresh':
+                fastRefresh().then(() => {
+                    toast('Fast refresh finished.');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, delayReloadTime);
+                });
+                break;
             case 'translate-subtitle':
                 translateSubtitle().then(() => {
-                    window.location.reload();
+                    fastRefresh().then(() => {
+                        toast('Fast refresh finished.');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, delayReloadTime);
+                    });
                 });
                 break;
             case 'switch-location':
-                switchLocation().then(() => {
-                    window.location.reload();
+                switchLocation().then((libraryInfo) => {
+                    const { currVirtualFolder } = libraryInfo;
+
+                    fastRefresh(currVirtualFolder.ItemId).then(() => {
+                        toast('Fast refresh finished.');
+                        setTimeout(() => {
+                            window.history.go(-1);
+                        }, delayReloadTime);
+                    });
                 });
                 break;
             default:
