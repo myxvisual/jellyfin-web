@@ -338,7 +338,7 @@ export function getCommands(options) {
         icon: 'autorenew'
     });
 
-    if ([BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Series].includes(item.Type)) {
+    if ([BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Season, BaseItemKind.Series].includes(item.Type)) {
         commands.push({
             name: 'CC translate',
             id: 'translate-subtitle',
