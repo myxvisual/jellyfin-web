@@ -338,7 +338,7 @@ export function getCommands(options) {
         icon: 'autorenew'
     });
 
-    if ([BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Season, BaseItemKind.Series].includes(item.Type)) {
+    if (canEdit && [BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Season, BaseItemKind.Series].includes(item.Type)) {
         commands.push({
             name: 'CC translate',
             id: 'translate-subtitle',
@@ -372,6 +372,10 @@ function executeCommand(item, id, options) {
 
     const delayReloadTime = 5000;
     async function getLibraryInfo(itemPath) {
+        if (!itemPath) {
+            throw new Error('No item path provided');
+        }
+
         const virtualFolders = await apiClient.getVirtualFolders();
         let currLibLocation = null;
         let nextLibLocation = null;
@@ -402,22 +406,20 @@ function executeCommand(item, id, options) {
         const replaceAllMetadata = refreshMode === 'all';
         const replaceAllImages = refreshMode === 'all';
 
-        const res = await apiClient.refreshItem(refreshItemId, {
+        await apiClient.refreshItem(refreshItemId, {
             Recursive: true,
             ImageRefreshMode: mode,
             MetadataRefreshMode: mode,
             ReplaceAllImages: replaceAllImages,
             ReplaceAllMetadata: replaceAllMetadata
         });
-        console.log(res);
     }
 
     async function translateSubtitle() {
-        const libraryInfo = await getLibraryInfo(item.Path);
-        console.log(libraryInfo);
         let success = false;
         let errText = '';
         try {
+            const libraryInfo = await getLibraryInfo(item.Path);
             toast('Translating subtitle...');
             const url = apiClient.serverAddress().replace(/:\d+$/, ':4800') + '/api/jellyfin/translate-subtitle';
             const res = await fetch(url, {
@@ -440,11 +442,10 @@ function executeCommand(item, id, options) {
     }
 
     async function switchLocation() {
-        const libraryInfo = await getLibraryInfo(item.Path);
-        console.log(libraryInfo);
         let success = false;
         let errText = '';
         try {
+            const libraryInfo = await getLibraryInfo(item.Path);
             toast('Switching location...');
             const url = apiClient.serverAddress().replace(/:\d+$/, ':4800') + '/api/jellyfin/switch-location';
             const res = await fetch(url, {
