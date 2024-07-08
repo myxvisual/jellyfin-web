@@ -338,7 +338,7 @@ export function getCommands(options) {
         icon: 'autorenew'
     });
 
-    if (canEdit && [BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Season, BaseItemKind.Series].includes(item.Type)) {
+    if (item.Path && [BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Season, BaseItemKind.Series].includes(item.Type)) {
         commands.push({
             name: 'CC translate',
             id: 'translate-subtitle',
@@ -418,8 +418,9 @@ function executeCommand(item, id, options) {
     async function translateSubtitle() {
         let success = false;
         let errText = '';
+        let libraryInfo = null;
         try {
-            const libraryInfo = await getLibraryInfo(item.Path);
+            libraryInfo = await getLibraryInfo(item.Path);
             toast('Translating subtitle...');
             const url = apiClient.serverAddress().replace(/:\d+$/, ':4800') + '/api/jellyfin/translate-subtitle';
             const res = await fetch(url, {
@@ -444,8 +445,9 @@ function executeCommand(item, id, options) {
     async function switchLocation() {
         let success = false;
         let errText = '';
+        let libraryInfo = null;
         try {
-            const libraryInfo = await getLibraryInfo(item.Path);
+            libraryInfo = await getLibraryInfo(item.Path);
             toast('Switching location...');
             const url = apiClient.serverAddress().replace(/:\d+$/, ':4800') + '/api/jellyfin/switch-location';
             const res = await fetch(url, {
