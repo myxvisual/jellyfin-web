@@ -43,7 +43,7 @@ const KeyNames = {
 /**
  * Keys used for keyboard navigation.
  */
-const NavigationKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+const NavigationKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'BrowserHome', 'Find'];
 
 /**
  * Keys used for media playback control.
@@ -125,6 +125,11 @@ export function isInteractiveElement(element) {
 export function enable() {
     const hasMediaSession = 'mediaSession' in navigator;
     window.addEventListener('keydown', function (e) {
+        if (e.defaultPrevented) return;
+
+        // Skip modified keys
+        if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+
         const key = getKeyName(e);
 
         // Ignore navigation keys for non-TV
@@ -180,6 +185,13 @@ export function enable() {
                 } else {
                     capture = false;
                 }
+                break;
+
+            case 'Find':
+                inputManager.handleCommand('search');
+                break;
+            case 'BrowserHome':
+                inputManager.handleCommand('home');
                 break;
 
             case 'MediaPlay':
