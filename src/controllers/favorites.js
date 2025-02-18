@@ -5,7 +5,7 @@ import layoutManager from 'components/layoutManager';
 import { appRouter } from 'components/router/appRouter';
 import ServerConnections from 'components/ServerConnections';
 import dom from 'scripts/dom';
-import globalize from 'scripts/globalize';
+import globalize from 'lib/globalize';
 import { getBackdropShape, getPortraitShape, getSquareShape } from 'utils/card';
 import { ItemSortBy } from '@jellyfin/sdk/lib/generated-client/models/item-sort-by';
 
@@ -46,8 +46,17 @@ function getSections() {
         overlayText: false,
         centerText: true
     }, {
-        name: 'Videos',
+        name: 'HeaderVideos',
         types: 'Video',
+        shape: getBackdropShape(enableScrollX()),
+        preferThumb: true,
+        showTitle: true,
+        overlayPlayButton: true,
+        overlayText: false,
+        centerText: true
+    }, {
+        name: 'MusicVideos',
+        types: 'MusicVideo',
         shape: getBackdropShape(enableScrollX()),
         preferThumb: true,
         showTitle: true,
@@ -124,6 +133,30 @@ function getSections() {
         shape: getPortraitShape(enableScrollX()),
         showTitle: true,
         showYear: true,
+        overlayPlayButton: true,
+        overlayText: false,
+        centerText: true
+    }, {
+        name: 'Channels',
+        types: 'LiveTVChannel',
+        shape: getBackdropShape(enableScrollX()),
+        showTitle: true,
+        overlayPlayButton: true,
+        overlayText: false,
+        centerText: true
+    }, {
+        name: 'HeaderPhotoAlbums',
+        types: 'PhotoAlbum',
+        shape: getBackdropShape(enableScrollX()),
+        showTitle: true,
+        overlayPlayButton: true,
+        overlayText: false,
+        centerText: true
+    }, {
+        name: 'Photos',
+        types: 'Photo',
+        shape: getBackdropShape(enableScrollX()),
+        showTitle: true,
         overlayPlayButton: true,
         overlayText: false,
         centerText: true
